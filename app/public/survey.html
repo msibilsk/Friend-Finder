@@ -1,6 +1,8 @@
 <head>
     <title>Friend Finder</title>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous" />
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -206,7 +208,7 @@
                         </form>
                     </div>
                 </div>
-                <button class="btn btn-primary" style="width: 100%">Submit</button>
+                <button class='btn btn-primary submit' data-toggle="modal" data-target="#myModal" style="width: 100%">Submit</button>
                 <br />
                 <br />
                 <footer class="footer">
@@ -214,6 +216,88 @@
                 </footer>
             </div>
         </div>
+        <!--MODAL ************************************************************* -->
+        <div class="modal fade" id="myModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        <h4 class="modal-title">Here is your best match:</h4>
+                    </div>
+                    <div class="modal-body">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary">Save changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 </body>
+<script type="text/javascript">
+$(".submit").on("click", function(event) {
+    event.preventDefault();
+
+    var newFriend = {
+        name: $("#name").val().trim(),
+        photo: $("#link").val().trim(),
+        scores: []
+    };
+    var friendName;
+    var friendPic;
+
+    var count = 1;
+    for (var i = 0; i < 10; i++) {
+
+        var val = parseInt($(`#q${count}`).val());
+
+        newFriend.scores.push(val);
+
+        count++;
+    }
+
+    $.ajax("/api/friends", {
+        data: JSON.stringify(newFriend),
+        contentType: 'application/json',
+        type: 'POST'
+    });
+
+    $.get("/api/friends")
+        .done(function(data) {
+            console.log(data);
+            var len = data.length;
+            var user = len - 1;
+            var userScores = data[user].scores;
+            var closestMatch = 40;
+            var bestFriend;
+            for (var i = 0; i < user; i++) {
+                var diffs = [];
+                var possibleMatch = data[i].scores;
+                for (var n = 0; n < 10; n++) {
+                    diffs.push(Math.abs(userScores[n] - possibleMatch[n]));
+                }
+                var total = diffs.reduce(function(a, b) {
+                    return a + b;
+                }, 0);
+                if (total < closestMatch) {
+                    closestMatch = total;
+                    bestFriend = data[i];
+                }
+            }
+            console.log(bestFriend);
+            friendName = $("<p>Name: " + bestFriend.name + "</p>");
+            friendPic = $("<img src=" + bestFriend.photo + " />")
+            $(".modal .modal-body").append(friendName);
+            $(".modal .modal-body").append(friendPic);
+        });
+
+    $('#myModal').on('shown.bs.modal', function() {
+        $('#myInput').focus()
+    });
+
+    $(".modal .modal-body").empty();
+});
+</script>
 
 </html>
